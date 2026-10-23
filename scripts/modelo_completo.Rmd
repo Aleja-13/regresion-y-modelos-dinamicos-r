@@ -1,0 +1,137 @@
+---
+title: "Modelo Completo"
+author: "aleja"
+date: "24/8/2021"
+output: html_document
+---
+
+install.packages("readxl")
+library(readxl)
+install.packages("rjags")
+library(rjags)
+install.packages("dlm")
+library(dlm)
+library(lubridate)
+install.packages("forecast")
+library(forecast)
+install.packages("ggplot2")
+library('ggplot2')
+install.packages("tseries")
+library('tseries')
+install.packages("gridExtra")
+library(gridExtra)
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("dplyr")
+
+
+
+
+BD_Indice <- read_excel("datos/BD_Indice.xlsx")
+View(BD_Indice)
+
+
+tiempo<-as.Date(BD_Indice$year)
+indice<-BD_Indice$`indice de cambio en el area`
+
+
+plot(tiempo,indice, type="p", xlab= "Año", ylab="Índice de cambios en el área", main="Serie temporal", col="blue")
+
+ggplot() + geom_line(data = BD_Indice, aes(x = tiempo, y = indice), color = 4, lwd = 1, linetype = 1) + ylab('Cambio en el Indice')+ geom_point(data = BD_Indice, aes(x = tiempo, y = indice))
+
+
+count_ma = ts(na.omit(indice), frequency=12)
+decomp = stl(count_ma, s.window="periodic")
+deseasonal_indice <- seasadj(decomp)
+plot(decomp)
+
+
+adf.test(count_ma, alternative = "stationary")
+
+Acf(count_ma, main='')
+
+Pacf(count_ma, main='')
+
+modeloarima<-auto.arima(count_ma, seasonal=FALSE)
+modeloarima
+
+prediccion <- forecast(modeloarima, h=30)
+plot(prediccion)
+
+###Serie de Tiempo todas las variables
+
+BD_Indice$year <- NULL
+
+z<-ts(as.matrix(BD_Indice), start = 2009, end = 2019, frequency = 12)
+class(z)
+plot (z)
+
+predZ <- forecast(z, h=30)
+
+summary (predZ)
+plot(predZ)
+head(z)
+
+
+### Modelo HotlWinters
+modelo<-HoltWinters(z)
+is.dlm(modelo)
+
+### Regresion Lineal Multiple
+ModeloRegresion <- lm(BD_Indice$`indice de cambio en el area`~ BD_Indice$HUM_BOS + BD_Indice$TEM_BOS + BD_Indice$TEM_BOS + BD_Indice$TEM_PNN + BD_Indice$PRE_SECA, data = BD_Indice)
+is.dlm(ModeloRegresion)
+
+
+modeloR_2<-dlmModReg(z)
+is.dlm(modeloR_2)
+
+modelofiltrado<-dlmfilter(Base_de_datos, modeloR_2)
+
+
+modARMA_1<- dlmModARMA(ar=list(as.matrix(BD_Indice), as.matrix(indice), ma=list(as.matrix(BD_Indice$HUM_BOS), as.matrix(BD_Indice$TEM_BOS), as.matrix(BD_Indice$TEM_CAL),as.matrix(BD_Indice$TEM_PNN), as.matrix(BD_Indice$PRE_SECA)), sigma2 = as.matrix(sd(as.matrix(BD_Indice$`indice de cambio en el area`)))))
+
+
+
+residuales<-(residuals(mod2))
+prediccion_ <- forecast(mod2, h=30)
+plot(prediccion_)
+
+modFilt<-dlmFilter(indice,mod3)
+modFlit
+summary(modFilt)
+summary(modFilt$mod)
+
+residuals(modFilt,sd=FALSE)
+prediccion1 <- forecast(modFilt, h=30)
+plot(prediccion1)
+
+filtPend<-dropFirst(modFilt$m[,2])
+
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
